@@ -162,21 +162,30 @@ class hat_fafb():
         self.CBF = True
         self.threshold = threshold
         return CBF_neuron_meshes
-    
-    def _combine_voxels(self, voxel_neuron_list):
-        sample_neuron = voxel_neuron_list[0].copy()
-        combined_grid = sample_neuron.grid
-        for voxel_neuron in voxel_neuron_list[1:]:
-            combined_grid = np.logical_or(combined_grid, voxel_neuron.grid)
-        sample_neuron.grid = combined_grid
-        return sample_neuron
+
+    # combined into _save_nrrd to save memory
+    # def _combine_voxels(self, voxel_neuron_list):
+    #     sample_neuron = voxel_neuron_list[0].copy()
+    #     combined_grid = sample_neuron.grid
+    #     for voxel_neuron in voxel_neuron_list[1:]:
+    #         combined_grid = np.logical_or(combined_grid, voxel_neuron.grid)
+    #     sample_neuron.grid = combined_grid
+    #     return sample_neuron
     
     def _save_nrrd(self, file_path: str, neuron_meshes):
         bbox = np.array(flybrains.JRC2018U.boundingbox).reshape(3,2)
-        voxel_neuron_list =  navis.voxelize(neuron_meshes, pitch = 0.38, bounds=bbox)
-        combined_voxel_neuron = self._combine_voxels(voxel_neuron_list)
+        # save some memory by voxelizing individual neuron
+        # initiate grid from the first neuron mesh
+        combined_grid = None
+        for neuron in neuron_meshes:
+            neuron = navis.voxelize(neuron, pitch=0.38, bounds=bbox)
+            if combined_grid is None:
+                combined_grid = neuron.grid
+            else:
+                combined_grid = np.logical_or(combined_grid, neuron.grid)
+        neuron.grid = combined_grid
         # also save a z-projection of the voxelized neuron as a 2D png image
-        z_projection = combined_voxel_neuron.grid.max(axis=2)
+        z_projection = neuron.grid.max(axis=2)
         plt.imshow(z_projection.T, cmap='gray')
         plt.axis('off')
         # change image orientation to match the flywire orientation
@@ -186,7 +195,7 @@ class hat_fafb():
                                  pad_inches=0)
         plt.close()
         saving_path = os.path.join(self.root_path, self.hemileage, file_path)
-        navis.write_nrrd(combined_voxel_neuron, saving_path)
+        navis.write_nrrd(neuron, saving_path)
 
     def get_registered_meshes(self, file_path: str, CBF_threshold: float = 0.2, update: bool = False,
                         template: str = "JRC2018U", source: str = "FLYWIRE"):
@@ -194,6 +203,7 @@ class hat_fafb():
         Register the neuron meshes to a template.
         Assuming the templates have been downloaded as discribed in navis_flybrains documentation.
         """
+        nrrd_file_path = file_path.replace('.pkl', '.nrrd')
         if not isinstance(template, str):
             raise TypeError("template must be a string")
         if template not in self.templates:
@@ -201,6 +211,9 @@ class hat_fafb():
             self.templates.append(template)
         if self._file_exists(file_path) and not update:
             registered_meshes = self._load_pkl(file_path)
+            if not self._file_exists(nrrd_file_path):
+                # save the registered meshes as a nrrd file
+                self._save_nrrd(nrrd_file_path, registered_meshes)
             return registered_meshes
         elif "CBF" in file_path:
             # get the CBF neuron meshes
