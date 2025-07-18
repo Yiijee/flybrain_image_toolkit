@@ -9,7 +9,7 @@ In this project, I will follow the [connectome annotation paper](https://www.nat
 - Download neuron meshes
 - Transfer meshes into brain template
 - *optional* keep only Soma and main neurite to highlight the tracts
-    Currently using a threshold of 0.2 for all lineages. Will make it adapative in the next version.
+    Currently using a configurable downsampling factor for all lineages. Default value of 10 provides balanced resolution and processing speed.
 - Voxelize meshes
 
 ## HAT_FAFB Module Documentation
@@ -37,13 +37,13 @@ hat_fafb(hemileage: str, root_path: str = None)
 
 #### Key Methods
 
-##### `register_meshes(CBF=False, CBF_threshold=0.2, update=False, template="JRC2018U", source="FLYWIRE")`
+##### `register_meshes(CBF=False, downsampling_factor=10, update=False, template="JRC2018U", source="FLYWIRE")`
 
 Registers neuron meshes to a specified brain template.
 
 **Parameters:**
 - `CBF` (bool): Whether to use Cell Body Fiber processing
-- `CBF_threshold` (float): Threshold for CBF processing (default: 0.2)
+- `downsampling_factor` (int): Downsampling factor for mesh processing (default: 10)
 - `update` (bool): Force update of existing files
 - `template` (str): Target brain template (default: "JRC2018U")
 - `source` (str): Source coordinate system (default: "FLYWIRE")
@@ -51,7 +51,7 @@ Registers neuron meshes to a specified brain template.
 **Returns:**
 - Tuple of (file_path, registered_meshes)
 
-##### `get_registered_meshes(file_path, CBF_threshold=0.2, update=False, template="JRC2018U", source="FLYWIRE")`
+##### `get_registered_meshes(file_path, downsampling_factor=10, update=False, template="JRC2018U", source="FLYWIRE")`
 
 Lower-level method for mesh registration with custom file paths.
 
@@ -73,6 +73,23 @@ root_path/hemileage/
 └── hemileage_attributes.json             # Class attributes and metadata
 ```
 
+#### Processing Parameters
+
+##### Downsampling Factor
+The `downsampling_factor` parameter controls mesh resolution and processing speed:
+
+- **Higher values** (e.g., 20): More aggressive downsampling
+  - Smaller file sizes
+  - Faster processing
+  - Lower mesh resolution
+  
+- **Lower values** (e.g., 5): Less downsampling
+  - Higher mesh resolution
+  - Larger file sizes
+  - Slower processing
+  
+- **Default**: 10 (balanced resolution and processing speed)
+
 #### Dependencies
 
 - `flybrains`: Brain template handling
@@ -90,11 +107,11 @@ from HAT_FAFB import hat_fafb
 # Initialize for FLAa2 hemilineage
 hemi = hat_fafb("FLAa2")
 
-# Register meshes with CBF processing
-file_path, meshes = hemi.register_meshes(CBF=True, CBF_threshold=0.1)
+# Register meshes with CBF processing and custom downsampling
+file_path, meshes = hemi.register_meshes(CBF=True, downsampling_factor=5)
 
-# Register to different template
-file_path, meshes = hemi.register_meshes(template="FCWB", CBF=False)
+# Register to different template with higher downsampling
+file_path, meshes = hemi.register_meshes(template="FCWB", CBF=False, downsampling_factor=20)
 ```
 
 #### Notes
@@ -103,4 +120,5 @@ file_path, meshes = hemi.register_meshes(template="FCWB", CBF=False)
 - Files are cached locally to avoid redundant downloads
 - Supports multiple brain templates through the navis-flybrains package, need to download templates following their guidance first
 - Generates both 3D mesh data and 2D visualization outputs
+- The downsampling factor affects both processing time and output quality - adjust based on your needs
 

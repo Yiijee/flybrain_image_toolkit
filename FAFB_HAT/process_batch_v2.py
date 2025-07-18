@@ -18,7 +18,7 @@ Usage:
     python process_batch_v2.py <batch_number> [options]
 
 Example:
-    python process_batch_v2.py 0 --whole_neuron --cbf --cbf_threshold 0.1
+    python process_batch_v2.py 0 --whole_neuron --cbf --downsampling_factor 10
 """
 
 import argparse
@@ -123,7 +123,7 @@ class HemilineageBatchProcessorV2:
             logger.warning(f"Hemilineage {hemilineage} not found in summary")
     
     def process_hemilineage(self, hemilineage, process_whole_neuron=False, process_cbf=False,
-                          cbf_threshold=0.2, template="JRC2018U", source="FLYWIRE", update=False):
+                          downsampling_factor=10, template="JRC2018U", source="FLYWIRE", update=False):
         """
         Process a single hemilineage using the hat_fafb class.
         
@@ -131,7 +131,7 @@ class HemilineageBatchProcessorV2:
             hemilineage (str): Name of the hemilineage to process
             process_whole_neuron (bool): Whether to process whole neuron (CBF=False)
             process_cbf (bool): Whether to process CBF version (CBF=True)
-            cbf_threshold (float): Threshold for CBF processing
+            downsampling_factor (int): Downsampling factor for mesh processing
             template (str): Target brain template
             source (str): Source coordinate system
             update (bool): Force update of existing files
@@ -157,7 +157,7 @@ class HemilineageBatchProcessorV2:
                     logger.info(f"Processing whole neuron for {hemilineage}")
                     file_path, registered_meshes = hemi_processor.register_meshes(
                         CBF=False,
-                        CBF_threshold=cbf_threshold,
+                        downsampling_factor=downsampling_factor,
                         update=update,
                         template=template,
                         source=source
@@ -177,7 +177,7 @@ class HemilineageBatchProcessorV2:
                     logger.info(f"Processing CBF for {hemilineage}")
                     file_path, registered_meshes = hemi_processor.register_meshes(
                         CBF=True,
-                        CBF_threshold=cbf_threshold,
+                        downsampling_factor=downsampling_factor,
                         update=update,
                         template=template,
                         source=source
@@ -212,7 +212,7 @@ class HemilineageBatchProcessorV2:
                    'cbf': False if process_cbf else None}
     
     def process_batch(self, batch_number, process_whole_neuron=False, process_cbf=False,
-                     cbf_threshold=0.2, template="JRC2018U", source="FLYWIRE", update=False,
+                     downsampling_factor=10, template="JRC2018U", source="FLYWIRE", update=False,
                      skip_completed=True):
         """
         Process all hemilineages in a specific batch.
@@ -221,7 +221,7 @@ class HemilineageBatchProcessorV2:
             batch_number (int): Batch number to process
             process_whole_neuron (bool): Whether to process whole neuron (CBF=False)
             process_cbf (bool): Whether to process CBF version (CBF=True)
-            cbf_threshold (float): Threshold for CBF processing
+            downsampling_factor (int): Downsampling factor for mesh processing
             template (str): Target brain template
             source (str): Source coordinate system
             update (bool): Force update of existing files
@@ -272,7 +272,7 @@ class HemilineageBatchProcessorV2:
                 hemilineage=hemilineage,
                 process_whole_neuron=process_wn,
                 process_cbf=process_cb,
-                cbf_threshold=cbf_threshold,
+                downsampling_factor=downsampling_factor,
                 template=template,
                 source=source,
                 update=update
@@ -317,8 +317,8 @@ def main():
                        help='Process whole neuron (CBF=False)')
     parser.add_argument('--cbf', action='store_true', 
                        help='Process CBF version (CBF=True)')
-    parser.add_argument('--cbf_threshold', type=float, default=0.2,
-                       help='Threshold for CBF processing (default: 0.2)')
+    parser.add_argument('--downsampling_factor', type=int, default=10,
+                       help='Downsampling factor for mesh processing (default: 10)')
     
     # Other options
     parser.add_argument('--template', default='JRC2018U',
@@ -345,7 +345,7 @@ def main():
         batch_number=args.batch_number,
         process_whole_neuron=args.whole_neuron,
         process_cbf=args.cbf,
-        cbf_threshold=args.cbf_threshold,
+        downsampling_factor=args.downsampling_factor,
         template=args.template,
         source=args.source,
         update=args.update,

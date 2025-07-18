@@ -13,7 +13,7 @@ Usage:
     python process_single_v2.py <hemilineage_name> [options]
 
 Example:
-    python process_single_v2.py FLAa2 --whole_neuron --cbf --cbf_threshold 0.1
+    python process_single_v2.py FLAa2 --whole_neuron --cbf --downsampling_factor 10
 """
 
 import argparse
@@ -46,8 +46,8 @@ def main():
                        help='Process whole neuron (CBF=False)')
     parser.add_argument('--cbf', action='store_true', 
                        help='Process CBF version (CBF=True)')
-    parser.add_argument('--cbf_threshold', type=float, default=0.2,
-                       help='Threshold for CBF processing (default: 0.2)')
+    parser.add_argument('--downsampling_factor', type=int, default=10,
+                       help='Downsampling factor for mesh processing (default: 10)')
     
     # Other options
     parser.add_argument('--template', default='JRC2018U',
@@ -77,7 +77,7 @@ def main():
         hemilineage=args.hemilineage,
         process_whole_neuron=args.whole_neuron,
         process_cbf=args.cbf,
-        cbf_threshold=args.cbf_threshold,
+        downsampling_factor=args.downsampling_factor,
         template=args.template,
         source=args.source,
         update=args.update

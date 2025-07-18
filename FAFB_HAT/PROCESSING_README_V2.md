@@ -29,10 +29,10 @@ python process_batch_v2.py <batch_number> [--whole_neuron] [--cbf] [options]
 python process_batch_v2.py 0 --whole_neuron
 
 # Process batch 0 - CBF only
-python process_batch_v2.py 0 --cbf --cbf_threshold 0.1
+python process_batch_v2.py 0 --cbf --downsampling_factor 5
 
 # Process batch 0 - both whole neuron and CBF
-python process_batch_v2.py 0 --whole_neuron --cbf --cbf_threshold 0.15
+python process_batch_v2.py 0 --whole_neuron --cbf --downsampling_factor 15
 
 # Process batch 1 with different template
 python process_batch_v2.py 1 --whole_neuron --cbf --template FCWB
@@ -45,7 +45,7 @@ python process_batch_v2.py 1 --whole_neuron --cbf --template FCWB
 
 **Other Options:**
 - `--csv`: Path to hemileage summary CSV file (default: hemileage_summary.csv)
-- `--cbf_threshold`: Threshold for CBF processing (default: 0.2)
+- `--downsampling_factor`: Downsampling factor for mesh processing (default: 10)
 - `--template`: Target brain template (default: JRC2018U)
 - `--source`: Source coordinate system (default: FLYWIRE)
 - `--update`: Force update of existing files
@@ -65,7 +65,7 @@ python process_single_v2.py <hemilineage_name> [--whole_neuron] [--cbf] [options
 python process_single_v2.py FLAa2 --whole_neuron
 
 # Process LHp3 - both whole neuron and CBF
-python process_single_v2.py LHp3 --whole_neuron --cbf --cbf_threshold 0.15
+python process_single_v2.py LHp3 --whole_neuron --cbf --downsampling_factor 5
 ```
 
 ### 3. `check_status_v2.py` - Status Monitoring with Separate Tracking
@@ -154,6 +154,23 @@ root_path/hemileage/
 └── hemileage_attributes.json               # Class attributes and metadata
 ```
 
+## Processing Parameters
+
+### Downsampling Factor
+The `--downsampling_factor` parameter controls mesh resolution:
+- **Higher values** (e.g., 20): More aggressive downsampling, smaller file sizes, faster processing
+- **Lower values** (e.g., 5): Less downsampling, higher resolution, larger file sizes
+- **Default**: 10 (balanced resolution and processing speed)
+
+Examples:
+```bash
+# High resolution (slower, larger files)
+python process_batch_v2.py 0 --whole_neuron --downsampling_factor 5
+
+# Low resolution (faster, smaller files)
+python process_batch_v2.py 0 --whole_neuron --downsampling_factor 20
+```
+
 ## Logging
 
 All scripts create log files:
@@ -173,13 +190,13 @@ All scripts create log files:
 
 ```bash
 # Step 1: Process all whole neurons in batch 0
-python process_batch_v2.py 0 --whole_neuron
+python process_batch_v2.py 0 --whole_neuron --downsampling_factor 10
 
 # Step 2: Check progress
 python check_status_v2.py --batch 0
 
 # Step 3: Process CBF for completed whole neurons
-python process_batch_v2.py 0 --cbf --cbf_threshold 0.2
+python process_batch_v2.py 0 --cbf --downsampling_factor 10
 
 # Step 4: Check final status
 python check_status_v2.py --comparison
@@ -189,7 +206,7 @@ python check_status_v2.py --comparison
 
 ```bash
 # Process both whole neuron and CBF for batch 1
-python process_batch_v2.py 1 --whole_neuron --cbf --cbf_threshold 0.15
+python process_batch_v2.py 1 --whole_neuron --cbf --downsampling_factor 15
 
 # Monitor progress
 python check_status_v2.py --batch 1
@@ -205,23 +222,23 @@ python check_status_v2.py --errors
 python reset_status_v2.py --errors_to 0
 
 # Retry failed processing
-python process_batch_v2.py 0 --whole_neuron --cbf
+python process_batch_v2.py 0 --whole_neuron --cbf --downsampling_factor 10
 ```
 
 ### 4. Parallel processing by batch and type
 
 ```bash
 # Terminal 1: Batch 0 whole neurons
-python process_batch_v2.py 0 --whole_neuron
+python process_batch_v2.py 0 --whole_neuron --downsampling_factor 10
 
 # Terminal 2: Batch 1 whole neurons  
-python process_batch_v2.py 1 --whole_neuron
+python process_batch_v2.py 1 --whole_neuron --downsampling_factor 10
 
 # Terminal 3: Batch 0 CBF (after whole neurons complete)
-python process_batch_v2.py 0 --cbf
+python process_batch_v2.py 0 --cbf --downsampling_factor 10
 
 # Terminal 4: Batch 1 CBF (after whole neurons complete)
-python process_batch_v2.py 1 --cbf
+python process_batch_v2.py 1 --cbf --downsampling_factor 10
 ```
 
 ## Migration from V1 Scripts
@@ -231,6 +248,7 @@ If you have an existing CSV with a single `status` column, you'll need to:
 1. Rename `status` to `status_whole_neuron`
 2. Add `status_cbf` column with initial value 0
 3. Update your workflow to use the v2 scripts
+4. Replace `--cbf_threshold` with `--downsampling_factor` in your commands
 
 ## Dependencies
 

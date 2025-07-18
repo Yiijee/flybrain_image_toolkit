@@ -60,7 +60,8 @@ class hat_fafb():
         
         # # other attributes
         self.CBF = False
-        self.threshold = 0.1
+        # self.threshold = 0.1
+        self.downsampling_factor = 0
         self.templates = []
         # self.CBF_neuron_meshes_file = None
         # self.template = None
@@ -85,7 +86,7 @@ class hat_fafb():
             "hemilineage_meta_file": self.hemilineage_meta_file,
             "hemi_neuron_ids": self.hemi_neuron_ids.tolist() if isinstance(self.hemi_neuron_ids, np.ndarray) else self.hemi_neuron_ids,
             "CBF": self.CBF,
-            "threshold": self.threshold,
+            "downsampling_factor": self.downsampling_factor,
             "templates": self.templates
         }
         attributes_file = os.path.join(self.root_path, self.hemileage, f'{self.hemileage}_attributes.json')
@@ -114,21 +115,21 @@ class hat_fafb():
         """
         Get hemileage metadata from the flybrains database.
         """
-        if not self._file_exists(self.hemilineage_meta_file):
+        if not self._file_exists(file_path):
             # get hemileage metadata from the flybrains database
             NC = flywire.NeuronCriteria
             hemi_meta_df = flywire.search_annotations(NC(ito_lee_hemilineage=self.hemileage))
             # save the metadata to a csv file
-            hemi_meta_df.to_csv(os.path.join(self.root_path, self.hemileage, self.hemilineage_meta_file), index=False)
+            hemi_meta_df.to_csv(os.path.join(self.root_path, self.hemileage, file_path), index=False)
         else:
             # load the hemileage metadata from the csv file
-            hemi_meta_df = pd.read_csv(os.path.join(self.root_path, self.hemileage, self.hemilineage_meta_file))
+            hemi_meta_df = pd.read_csv(os.path.join(self.root_path, self.hemileage, file_path))
 
         root_ids = hemi_meta_df['root_id'].values
 
         return hemi_meta_df, root_ids
     
-    def _get_neuron_mesh(self,file_path):
+    def _get_neuron_mesh(self,file_path, downsampling_factor = 0):
         """
         Get the mesh of a neuron from the flywire database.
         """
@@ -140,7 +141,11 @@ class hat_fafb():
         neuron_id = self.hemi_neuron_ids  # assuming we want the mesh of the first neuron in the hemileage
         if not self._file_exists(file_path):
             # get the meshes of the neurons from the flybrains database
-            neuron_meshes = flywire.get_mesh_neuron(neuron_id)
+            neuron_meshes = flywire.get_mesh_neuron(neuron_id, lod=3)
+            if downsampling_factor > 0:
+                self.downsampling_factor = downsampling_factor
+                self.update_attributes()
+                neuron_meshes = navis.downsample_neuron(neuron_meshes, downsampling_factor=downsampling_factor)
             neuron_meshes.set_neuron_attributes(assign_soma_pos, 'soma_pos')
             # save the meshes to a pickle file
             self._save_pkl(file_path, neuron_meshes)
@@ -149,18 +154,18 @@ class hat_fafb():
             neuron_meshes = self._load_pkl(file_path)
         return neuron_meshes
     
-    def _mesh_CBF(self, file_path: str, threshold: float = 0.2, update: bool = False):
+    def _mesh_CBF(self, file_path: str, update: bool = False):
 
         neuron_meshes = self._get_neuron_mesh(f"{self.hemileage}_meshes.pkl")
         if self._file_exists(file_path) and not update:
             CBF_neuron_meshes = self._load_pkl(file_path)
         else:
             # get the meshes of the CBF neurons from the flybrains database
-            CBF_neuron_meshes = navis.cell_body_fiber(neuron_meshes, threshold=threshold)
+            CBF_neuron_meshes = navis.longest_neurite(neuron_meshes, reroot_soma=True)
             # save the meshes to a pickle file
             self._save_pkl(file_path, CBF_neuron_meshes)
         self.CBF = True
-        self.threshold = threshold
+        self.update_attributes()
         return CBF_neuron_meshes
 
     # combined into _save_nrrd to save memory
@@ -197,7 +202,7 @@ class hat_fafb():
         saving_path = os.path.join(self.root_path, self.hemileage, file_path)
         navis.write_nrrd(neuron, saving_path)
 
-    def get_registered_meshes(self, file_path: str, CBF_threshold: float = 0.2, update: bool = False,
+    def get_registered_meshes(self, file_path: str, downsampling_factor: int = 10, update: bool = False,
                         template: str = "JRC2018U", source: str = "FLYWIRE"):
         """
         Register the neuron meshes to a template.
@@ -217,10 +222,10 @@ class hat_fafb():
             return registered_meshes
         elif "CBF" in file_path:
             # get the CBF neuron meshes
-            neuron_meshes = self._mesh_CBF(f"{self.hemileage}_CBF_meshes.pkl", threshold=CBF_threshold, update=update)
+            neuron_meshes = self._mesh_CBF(f"{self.hemileage}_CBF_meshes.pkl", update=update)
         else:
             # get the neuron meshes
-            neuron_meshes = self._get_neuron_mesh(f"{self.hemileage}_meshes.pkl")
+            neuron_meshes = self._get_neuron_mesh(f"{self.hemileage}_meshes.pkl", downsampling_factor=downsampling_factor)
         registered_meshes = navis.xform_brain(neuron_meshes, source=source, target=template)
         self._save_pkl(file_path, registered_meshes)
         nrrd_file_path = file_path.replace('.pkl', '.nrrd')
@@ -228,11 +233,11 @@ class hat_fafb():
         self.update_attributes()
         return registered_meshes
 
-    def register_meshes(self, CBF: bool = False, CBF_threshold: float = 0.2, update: bool = False,
+    def register_meshes(self, CBF: bool = False, downsampling_factor: int = 10, update: bool = False,
                         template: str = "JRC2018U", source: str = "FLYWIRE"):
         file_path = f"{self.hemileage}_registered_meshes.pkl"
         if CBF:
             file_path = f"{self.hemileage}_CBF_registered_meshes.pkl"
-        registered_meshes = self.get_registered_meshes(file_path, CBF_threshold=CBF_threshold, update=update,
+        registered_meshes = self.get_registered_meshes(file_path, downsampling_factor=downsampling_factor, update=update,
                                                        template=template, source=source)
         return file_path, registered_meshes
