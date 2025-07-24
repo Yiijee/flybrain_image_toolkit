@@ -77,16 +77,6 @@ root_path/hemileage/
 
 ##### Downsampling Factor
 The `downsampling_factor` parameter controls mesh resolution and processing speed:
-
-- **Higher values** (e.g., 20): More aggressive downsampling
-  - Smaller file sizes
-  - Faster processing
-  - Lower mesh resolution
-  
-- **Lower values** (e.g., 5): Less downsampling
-  - Higher mesh resolution
-  - Larger file sizes
-  - Slower processing
   
 - **Default**: 10 (balanced resolution and processing speed)
 
@@ -116,7 +106,7 @@ file_path, meshes = hemi.register_meshes(template="FCWB", CBF=False, downsamplin
 
 #### Notes
 
-- Requires FlyWire authentication token in `~/.cloudvolume/secrets/global.daf-apis.com-cave-secret.json`
+- Requires FlyWire authentication token in `~/.cloudvolume/secrets/cave-secret.json`
 - Files are cached locally to avoid redundant downloads
 - Supports multiple brain templates through the navis-flybrains package, need to download templates following their guidance first
 - Generates both 3D mesh data and 2D visualization outputs

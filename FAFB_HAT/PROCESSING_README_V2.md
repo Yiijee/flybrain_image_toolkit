@@ -29,10 +29,13 @@ python process_batch_v2.py <batch_number> [--whole_neuron] [--cbf] [options]
 python process_batch_v2.py 0 --whole_neuron
 
 # Process batch 0 - CBF only
-python process_batch_v2.py 0 --cbf --downsampling_factor 5
+python process_batch_v2.py 0 --cbf 
 
 # Process batch 0 - both whole neuron and CBF
-python process_batch_v2.py 0 --whole_neuron --cbf --downsampling_factor 15
+python process_batch_v2.py 0 --whole_neuron --cbf
+
+# Process batch 0 - both whole neuron and CBF without downsampling
+python process_batch_v2.py 0 --whole_neuron --cbf --downsampling_factor 0
 
 # Process batch 1 with different template
 python process_batch_v2.py 1 --whole_neuron --cbf --template FCWB
@@ -65,7 +68,11 @@ python process_single_v2.py <hemilineage_name> [--whole_neuron] [--cbf] [options
 python process_single_v2.py FLAa2 --whole_neuron
 
 # Process LHp3 - both whole neuron and CBF
-python process_single_v2.py LHp3 --whole_neuron --cbf --downsampling_factor 5
+python process_single_v2.py LHp3 --whole_neuron --cbf
+
+# Process batch 0 - both whole neuron and CBF without downsampling
+python process_single_v2.py LHp3 --whole_neuron --cbf --downsampling_factor 0
+
 ```
 
 ### 3. `check_status_v2.py` - Status Monitoring with Separate Tracking
